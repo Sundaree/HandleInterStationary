@@ -1,12 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using StationeryApi.Data;
 
-// Npgsql 6+ rejects DateTime with Kind=Unspecified for `timestamp with time zone`
-// columns. This legacy switch lets Npgsql accept any Kind and treat it as UTC —
-// acceptable here because every DateTime we persist is either DateTime.UtcNow
-// or normalized to UTC in controllers before saving.
-AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();

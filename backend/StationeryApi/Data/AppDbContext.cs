@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using StationeryApi.Models;
 
 namespace StationeryApi.Data;
@@ -6,6 +7,41 @@ namespace StationeryApi.Data;
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    // Npgsql's `timestamp with time zone` columns only accept DateTime with
+    // Kind=Utc. JSON deserialization (e.g. PickupDate from the frontend) yields
+    // Kind=Unspecified, so normalize every DateTime property on every save.
+    public override int SaveChanges()
+    {
+        NormalizeDatesToUtc();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        NormalizeDatesToUtc();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void NormalizeDatesToUtc()
+    {
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State != EntityState.Added && entry.State != EntityState.Modified) continue;
+            foreach (var prop in entry.Properties)
+            {
+                switch (prop.CurrentValue)
+                {
+                    case DateTime dt when dt.Kind != DateTimeKind.Utc:
+                        prop.CurrentValue = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                        break;
+                    case DateTimeOffset dto:
+                        prop.CurrentValue = dto.ToUniversalTime();
+                        break;
+                }
+            }
+        }
+    }
 
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Department> Departments => Set<Department>();
