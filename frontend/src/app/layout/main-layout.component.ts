@@ -7,7 +7,11 @@ import { TrPipe } from '../core/tr.pipe';
 import { BahtPipe } from '../core/baht.pipe';
 import { ApiService } from '../core/api.service';
 
-interface DashboardStats { monthAmount: number; }
+interface DashboardStats {
+  monthAmount: number;
+  showAmount: boolean;
+  role: string;
+}
 
 @Component({
   selector: 'app-main-layout',
@@ -25,7 +29,9 @@ interface DashboardStats { monthAmount: number; }
           </div>
         </div>
         <div class="top-actions">
-          <div class="month-amount" title="{{ 'dashboard.monthTotal' | tr }}">
+          <div class="month-amount" *ngIf="auth.canSeeTopbarAmount()"
+               [title]="scopeLabel()">
+            <span class="amount-scope">{{ scopeLabel() }}</span>
             {{ monthAmount() | baht }}
           </div>
           <button class="lang-btn" (click)="i18n.toggle()">
@@ -83,7 +89,9 @@ interface DashboardStats { monthAmount: number; }
   .month-amount {
     background: rgba(255,255,255,0.14); color: var(--gold-300);
     padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 0.95rem;
+    display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1;
   }
+  .amount-scope { color: rgba(255,255,255,0.75); font-size: 0.7rem; font-weight: 300; }
   .lang-btn {
     background: transparent; color: white; border: 1px solid rgba(255,255,255,0.4);
     padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: inherit;
@@ -132,12 +140,21 @@ export class MainLayoutComponent {
 
   user = this.auth.currentUser;
   monthAmount = signal(0);
+  scopeLabel = signal('');
 
   constructor() {
-    this.api.get<DashboardStats>('/reports/dashboard').subscribe({
-      next: s => this.monthAmount.set(s.monthAmount ?? 0),
-      error: () => this.monthAmount.set(0),
-    });
+    if (this.auth.canSeeTopbarAmount()) {
+      this.api.get<DashboardStats>('/reports/dashboard').subscribe({
+        next: s => {
+          this.monthAmount.set(s.monthAmount ?? 0);
+          const u = this.user();
+          if (s.role === 'Executive')          this.scopeLabel.set(u?.companyName ? `${u.companyName} · 30 วัน` : '30 วัน');
+          else if (s.role === 'DepartmentManager') this.scopeLabel.set(u?.departmentName ? `แผนก ${u.departmentName} · 30 วัน` : '30 วัน');
+          else                                  this.scopeLabel.set('30 วัน');
+        },
+        error: () => this.monthAmount.set(0),
+      });
+    }
   }
 
   logout() {

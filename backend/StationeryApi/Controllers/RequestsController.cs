@@ -19,6 +19,9 @@ public class RequestsController : ControllerBase
         return int.TryParse(v, out var id) ? id : 0;
     }
 
+    private async Task<User?> CurrentUser()
+        => await _db.Users.FirstOrDefaultAsync(u => u.Id == CurrentUserId());
+
     [HttpGet("mine")]
     public async Task<IActionResult> Mine()
     {
@@ -147,6 +150,11 @@ public class RequestsController : ControllerBase
     [HttpPost("{id:int}/prepare")]
     public async Task<IActionResult> Prepare(int id, [FromBody] PrepareDto dto)
     {
+        var me = await CurrentUser();
+        if (me == null) return Unauthorized(new { message = "โปรดล็อกอินก่อน" });
+        if (me.Role != UserRole.HR && me.Role != UserRole.Admin)
+            return StatusCode(403, new { message = "เฉพาะแผนก HR เท่านั้นที่กำหนดวัน/เวลารับของได้" });
+
         var req = await _db.Requests.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id);
         if (req == null) return NotFound();
         if (req.Status != RequestStatus.Approved && req.Status != RequestStatus.Preparing)
@@ -182,8 +190,16 @@ public class RequestsController : ControllerBase
     [HttpPost("{id:int}/pickup")]
     public async Task<IActionResult> Pickup(int id)
     {
+        var me = await CurrentUser();
+        if (me == null) return Unauthorized(new { message = "โปรดล็อกอินก่อน" });
+        if (me.Role != UserRole.HR && me.Role != UserRole.Admin)
+            return StatusCode(403, new { message = "เฉพาะแผนก HR เท่านั้นที่ยืนยันการรับของได้" });
+
         var req = await _db.Requests.FindAsync(id);
         if (req == null) return NotFound();
+        if (req.Status != RequestStatus.ReadyForPickup)
+            return BadRequest(new { message = "สถานะไม่ถูกต้อง ต้องเป็นพร้อมให้รับก่อน" });
+
         req.Status = RequestStatus.Completed;
         await _db.SaveChangesAsync();
         return Ok(new { req.Id, Status = req.Status.ToString() });

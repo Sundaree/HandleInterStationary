@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 import { TrPipe } from '../../core/tr.pipe';
 import { BahtPipe } from '../../core/baht.pipe';
 
@@ -40,9 +41,14 @@ interface PickupRow {
         </div>
         <div class="flex gap-2">
           <div class="text-gold" style="font-weight:600">{{ r.totalAmount | baht }}</div>
-          <button class="btn btn-gold btn-sm" (click)="startPrepare(r.id)">
+          <button class="btn btn-gold btn-sm"
+                  *ngIf="auth.canPrepareRequests()"
+                  (click)="startPrepare(r.id)">
             {{ 'req.prepare' | tr }}
           </button>
+          <span class="badge badge-gray" *ngIf="!auth.canPrepareRequests()">
+            เฉพาะ HR
+          </span>
         </div>
       </div>
       <table class="mt-2">
@@ -100,9 +106,14 @@ interface PickupRow {
           <td>{{ r.pickupDate | date:'d MMM y' }} · {{ r.pickupTime }}</td>
           <td>{{ r.pickupLocation }}</td>
           <td>
-            <button class="btn btn-primary btn-sm" (click)="pickupDone(r.id)">
+            <button class="btn btn-primary btn-sm"
+                    *ngIf="auth.canPrepareRequests()"
+                    (click)="pickupDone(r.id)">
               {{ 'req.confirmPickup' | tr }}
             </button>
+            <span class="badge badge-gray" *ngIf="!auth.canPrepareRequests()">
+              เฉพาะ HR
+            </span>
           </td>
         </tr>
       </tbody>
@@ -135,6 +146,7 @@ interface PickupRow {
 })
 export class WarehouseComponent {
   private api = inject(ApiService);
+  auth = inject(AuthService);
 
   tabs = [
     { key: 'pickList',    label: 'wh.pickList' },

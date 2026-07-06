@@ -64,4 +64,14 @@ export class AuthService {
     const r = this.currentUser()?.role;
     return r === 'Executive' || r === 'HR' || r === 'Admin';
   }
+  canPrepareRequests(): boolean {
+    const r = this.currentUser()?.role;
+    return r === 'HR' || r === 'Admin';
+  }
+  canSeeTopbarAmount(): boolean {
+    const r = this.currentUser()?.role;
+    return r === 'Executive' || r === 'DepartmentManager';
+  }
+  isCeo(): boolean { return this.currentUser()?.role === 'Executive'; }
+  isAdmin(): boolean { return this.currentUser()?.role === 'Admin'; }
 }
