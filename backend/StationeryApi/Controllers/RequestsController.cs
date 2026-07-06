@@ -160,7 +160,7 @@ public class RequestsController : ControllerBase
         if (req.Status != RequestStatus.Approved && req.Status != RequestStatus.Preparing)
             return BadRequest(new { message = "สถานะไม่ถูกต้อง ต้องเป็นสถานะอนุมัติแล้ว" });
 
-        req.PickupDate = dto.PickupDate;
+        req.PickupDate = DateTime.SpecifyKind(dto.PickupDate, DateTimeKind.Utc);
         req.PickupTime = dto.PickupTime;
         req.PickupLocation = dto.PickupLocation;
         req.Status = RequestStatus.ReadyForPickup;

@@ -39,8 +39,8 @@ public class ReportsController : ControllerBase
         var me = await CurrentUser();
         if (me == null) return Unauthorized();
 
-        var start = from ?? DateTime.UtcNow.AddMonths(-1);
-        var end = to ?? DateTime.UtcNow.AddDays(1);
+        var start = DateTime.SpecifyKind(from ?? DateTime.UtcNow.AddMonths(-1), DateTimeKind.Utc);
+        var end   = DateTime.SpecifyKind(to   ?? DateTime.UtcNow.AddDays(1),    DateTimeKind.Utc);
 
         var baseQ = _db.Requests
             .Where(r => r.CreatedAt >= start && r.CreatedAt <= end
@@ -128,7 +128,7 @@ public class ReportsController : ControllerBase
             return StatusCode(403, new { message = "เฉพาะผู้บริหาร/แอดมิน/HR เท่านั้น" });
 
         var y = year ?? DateTime.UtcNow.Year;
-        var start = new DateTime(y, 1, 1);
+        var start = new DateTime(y, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var end = start.AddYears(1);
 
         // Executive scoped to own company; Admin/HR see all
